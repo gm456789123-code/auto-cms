@@ -1,10 +1,11 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Clock, Bell, ToggleLeft, ToggleRight, Save, Package, ChevronRight } from "lucide-react"
+import { ArrowLeft, Clock, Bell, ToggleLeft, ToggleRight, Save, Package, ChevronRight, Wallet } from "lucide-react"
 import { loadPackages } from "@/lib/packageStore"
 import { POSSettings } from "@/types/pos"
+import { loadPaymentSettings, savePaymentSettings, PaymentSettings } from "@/lib/paymentStore"
 import { useNotification } from "@/context/NotificationContext"
 
 const PACKAGES = typeof window !== "undefined" ? loadPackages() : []
@@ -22,12 +23,18 @@ export default function POSSettingsPage() {
   const [pkgLimits, setPkgLimits] = useState<Record<string, number>>(
     Object.fromEntries(PACKAGES.map(p => [p.id, p.timeLimitMinutes]))
   )
+  const [payment, setPayment] = useState<PaymentSettings>({ promptpayId: "", promptpayName: "" })
+
+  useEffect(() => {
+    setPayment(loadPaymentSettings())
+  }, [])
 
   function toggle(key: keyof POSSettings) {
     setSettings(prev => ({ ...prev, [key]: !prev[key] }))
   }
 
   function save() {
+    savePaymentSettings(payment)
     toast.success("บันทึกการตั้งค่าแล้ว")
     router.push("/pos")
   }
@@ -153,6 +160,63 @@ export default function POSSettingsPage() {
             >
               {settings.autoCloseEnabled ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
             </button>
+          </div>
+        </div>
+
+        {/* PromptPay Settings */}
+        <div className="cms-card" style={{ marginBottom: "1.25rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.25rem" }}>
+            <div style={{ width: 36, height: 36, borderRadius: "10px", background: "rgba(16,185,129,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Wallet size={18} color="#10b981" />
+            </div>
+            <div>
+              <h3 style={{ fontWeight: 700, fontSize: "0.95rem", margin: 0 }}>PromptPay QR</h3>
+              <p style={{ fontSize: "0.78rem", color: "var(--cms-text-secondary)", margin: 0 }}>หมายเลขพร้อมเพย์สำหรับรับชำระ</p>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.9rem" }}>
+            <div>
+              <label style={{ fontSize: "0.83rem", fontWeight: 600, display: "block", marginBottom: "0.45rem" }}>
+                หมายเลขพร้อมเพย์
+              </label>
+              <input
+                type="text"
+                value={payment.promptpayId}
+                onChange={e => setPayment(prev => ({ ...prev, promptpayId: e.target.value.replace(/\s/g, "") }))}
+                placeholder="เบอร์โทร / เลขบัตรประชาชน / เลขบัญชี"
+                style={{
+                  width: "100%", padding: "0.6rem 0.85rem",
+                  borderRadius: "10px", border: "1.5px solid var(--cms-border)",
+                  background: "var(--cms-bg)", color: "var(--cms-text-primary)",
+                  fontSize: "0.9rem", outline: "none", boxSizing: "border-box",
+                }}
+                onFocus={e => (e.target.style.borderColor = "var(--cms-accent)")}
+                onBlur={e => (e.target.style.borderColor = "var(--cms-border)")}
+              />
+              <p style={{ fontSize: "0.75rem", color: "var(--cms-text-secondary)", margin: "0.35rem 0 0" }}>
+                รองรับ: เบอร์โทร 10 หลัก, เลขบัตร 13 หลัก, หรือเลขบัญชีธนาคาร
+              </p>
+            </div>
+            <div>
+              <label style={{ fontSize: "0.83rem", fontWeight: 600, display: "block", marginBottom: "0.45rem" }}>
+                ชื่อบัญชี (แสดงบน QR)
+              </label>
+              <input
+                type="text"
+                value={payment.promptpayName}
+                onChange={e => setPayment(prev => ({ ...prev, promptpayName: e.target.value }))}
+                placeholder="ชื่อร้าน / ชื่อเจ้าของบัญชี"
+                style={{
+                  width: "100%", padding: "0.6rem 0.85rem",
+                  borderRadius: "10px", border: "1.5px solid var(--cms-border)",
+                  background: "var(--cms-bg)", color: "var(--cms-text-primary)",
+                  fontSize: "0.9rem", outline: "none", boxSizing: "border-box",
+                }}
+                onFocus={e => (e.target.style.borderColor = "var(--cms-accent)")}
+                onBlur={e => (e.target.style.borderColor = "var(--cms-border)")}
+              />
+            </div>
           </div>
         </div>
 

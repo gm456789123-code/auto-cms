@@ -8,6 +8,7 @@ import { loadTables, saveTables } from "@/lib/tableStore"
 import { loadPackages } from "@/lib/packageStore"
 import TableTimer from "@/components/pos/TableTimer"
 import QRCodeModal from "@/components/pos/QRCodeModal"
+import PaymentModal from "@/components/pos/PaymentModal"
 import { useNotification } from "@/context/NotificationContext"
 
 const DEFAULT_SETTINGS: POSSettings = {
@@ -28,8 +29,9 @@ export default function TableDetailPage() {
   const [orders, setOrders]         = useState<OrderItem[]>([])
   const [note, setNote]             = useState("")
   const [sentOrders, setSentOrders] = useState<TableOrder[]>([])
-  const [showQR, setShowQR]         = useState(false)
-  const [tableToken, setTableToken] = useState<string | undefined>()
+  const [showQR, setShowQR]           = useState(false)
+  const [showPayment, setShowPayment] = useState(false)
+  const [tableToken, setTableToken]   = useState<string | undefined>()
 
   useEffect(() => {
     const tables   = loadTables()
@@ -282,7 +284,7 @@ export default function TableDetailPage() {
               <span style={{ fontWeight: 700 }}>รวมทั้งหมด</span>
               <span style={{ fontWeight: 800, fontSize: "1.15rem", color: "var(--cms-accent)" }}>฿{grandTotal.toLocaleString()}</span>
             </div>
-            <button className="cms-button-primary" style={{ width: "100%", justifyContent: "center", padding: "0.7rem" }}>
+            <button onClick={() => setShowPayment(true)} className="cms-button-primary" style={{ width: "100%", justifyContent: "center", padding: "0.7rem" }}>
               <Receipt size={17} /> ชำระเงิน
             </button>
           </div>
@@ -295,6 +297,25 @@ export default function TableDetailPage() {
           tableId={id as string}
           token={tableToken}
           onClose={() => setShowQR(false)}
+        />
+      )}
+
+      {showPayment && (
+        <PaymentModal
+          tableNumber={tableNumber}
+          totalAmount={grandTotal}
+          packageName={pkg.name}
+          people={table.people ?? 0}
+          onConfirm={() => {
+            const tables = loadTables()
+            saveTables(tables.map(t =>
+              t.id === table.id
+                ? { ...t, status: "available" as const, people: undefined, openedAt: undefined, packageId: undefined, token: undefined, orders: undefined }
+                : t
+            ))
+            router.push("/pos")
+          }}
+          onClose={() => setShowPayment(false)}
         />
       )}
     </div>
